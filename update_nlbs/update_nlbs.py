@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import boto3
 import argparse
 from tqdm import tqdm
@@ -11,6 +10,10 @@ def configure_nlb_access_logs(region, s3_bucket, prefix, dry_run=False):
     :param prefix: Base prefix to save the access logs in the S3 bucket.
     :param dry_run: If True, only displays actions without applying changes.
     """
+    # Normalize prefix to ensure it ends with a trailing slash
+    if not prefix.endswith("/"):
+        prefix += "/"
+
     elbv2_client = boto3.client("elbv2", region_name=region)
     paginator = elbv2_client.get_paginator("describe_load_balancers")
 
@@ -28,7 +31,7 @@ def configure_nlb_access_logs(region, s3_bucket, prefix, dry_run=False):
 
         for nlb in tqdm(nlb_list, desc="Configuring NLBs"):
             nlb_name = nlb["LoadBalancerName"]
-            target_prefix = f"{prefix}/{nlb_name}"
+            target_prefix = f"{prefix}{nlb_name}"
 
             if dry_run:
                 tqdm.write(f"[Dry Run] Would configure access logs for NLB '{nlb_name}' to S3: s3://{s3_bucket}/{target_prefix}")
