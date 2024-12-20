@@ -12,7 +12,7 @@ import boto3
 import argparse
 import logging
 from tqdm import tqdm
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, field_validator
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
