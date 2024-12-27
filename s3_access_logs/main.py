@@ -77,8 +77,8 @@ def scan_buckets_for_missing_logs(region):
 
 def main():
     parser = argparse.ArgumentParser(description="Enable access logs for S3 buckets.")
-    parser.add_argument('--file', required=True, help="File containing the list of bucket names.")
-    parser.add_argument('--target-bucket', required=True, help="Target bucket for storing access logs.")
+    parser.add_argument('--file', help="File containing the list of bucket names.")
+    parser.add_argument('--target-bucket', help="Target bucket for storing access logs.")
     parser.add_argument('--region', required=True, help="AWS region to use.")
     parser.add_argument('--dry-run', action='store_true', help="Perform a dry run without modifying any buckets.")
     parser.add_argument('--scan', action='store_true', help="Scan all buckets in the region for missing access logs configuration.")
@@ -87,6 +87,9 @@ def main():
     if args.scan:
         scan_buckets_for_missing_logs(args.region)
         return
+
+    if not args.file or not args.target_bucket:
+        parser.error("--file and --target-bucket are required unless --scan is specified")
 
     try:
         config = Config(file=args.file, target_bucket=args.target_bucket, region=args.region, dry_run=args.dry_run)

@@ -8,6 +8,7 @@ A Python script to enable access logs for a list of S3 buckets. This script uses
 - Supports a customizable S3 bucket and prefix for storing access logs.
 - Includes a `--dry-run` mode to preview changes without applying them.
 - Displays progress with a clean progress bar using `tqdm`.
+- **New:** Scans all buckets in the region for missing access logs configuration with the `--scan` option.
 
 ## Requirements
 
@@ -16,28 +17,37 @@ A Python script to enable access logs for a list of S3 buckets. This script uses
 - Python libraries:
   - `boto3`
   - `tqdm`
+  - `pydantic`
 
 Install required libraries:
 ```bash
-pip install boto3 tqdm
+pip install boto3 tqdm pydantic
 ```
 
 ## Usage
 
 ```bash
-python main.py --file <path_to_file> --target-bucket <target_bucket> [--dry-run]
+python main.py --region <region> [--file <path_to_file>] [--target-bucket <target_bucket>] [--dry-run] [--scan]
 ```
 
 ### Arguments
 
-- `--file`: Path to the file containing the list of bucket names.
-- `--target-bucket`: Target bucket for storing access logs.
+- `--file`: Path to the file containing the list of bucket names. (Required unless `--scan` is specified)
+- `--target-bucket`: Target bucket for storing access logs. (Required unless `--scan` is specified)
+- `--region`: AWS region to use.
 - `--dry-run`: Perform a dry run without modifying any buckets.
+- `--scan`: Scan all buckets in the region for missing access logs configuration.
 
-### Example
+### Examples
 
+Enable access logs for buckets listed in a file:
 ```bash
-python main.py --file buckets.txt --target-bucket my-log-bucket --dry-run
+python main.py --file buckets.txt --target-bucket my-log-bucket --region us-west-2 --dry-run
 ```
 
-This command will read the list of S3 bucket names from `buckets.txt`, and for each bucket, it will print the actions it would take to enable access logs with the specified prefix in `my-log-bucket` without actually making any changes.
+Scan all buckets in the region for missing access logs configuration:
+```bash
+python main.py --region us-west-2 --scan
+```
+
+This command will scan all S3 buckets in the specified region and list those that do not have access logs configuration enabled.
