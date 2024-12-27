@@ -52,6 +52,28 @@ def enable_access_logging(bucket_name, target_bucket, target_prefix, region, dry
     except Exception as e:
         logging.error(f"Failed to enable access logging for bucket: {bucket_name}. Error: {e}")
 
+def scan_buckets_for_missing_logs(region):
+    """Scan all buckets in the region for missing access logs configuration."""
+    s3_client = boto3.client('s3', region_name=region)
+    try:
+        response = s3_client.list_buckets()
+        buckets = response['Buckets']
+        missing_logs_buckets = []
+
+        for bucket in tqdm(buckets, desc="Scanning buckets"):
+            bucket_name = bucket['Name']
+            logging_status = s3_client.get_bucket_logging(Bucket=bucket_name)
+            if 'LoggingEnabled' not in logging_status:
+                missing_logs_buckets.append(bucket_name)
+
+        if missing_logs_buckets:
+            logging.info("Buckets missing access logs configuration:")
+            for bucket_name in missing_logs_buckets:
+                print(bucket_name)
+        else:
+            logging.info("All buckets have access logs configuration enabled.")
+    except Exception as e:
+        logging.error(f"Failed to scan buckets for access logs configuration. Error: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Enable access logs for S3 buckets.")
@@ -59,7 +81,12 @@ def main():
     parser.add_argument('--target-bucket', required=True, help="Target bucket for storing access logs.")
     parser.add_argument('--region', required=True, help="AWS region to use.")
     parser.add_argument('--dry-run', action='store_true', help="Perform a dry run without modifying any buckets.")
+    parser.add_argument('--scan', action='store_true', help="Scan all buckets in the region for missing access logs configuration.")
     args = parser.parse_args()
+
+    if args.scan:
+        scan_buckets_for_missing_logs(args.region)
+        return
 
     try:
         config = Config(file=args.file, target_bucket=args.target_bucket, region=args.region, dry_run=args.dry_run)
