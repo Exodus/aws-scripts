@@ -33,12 +33,12 @@ class Config(BaseModel):
 def enable_access_logging(bucket_name, target_bucket, target_prefix, region, dry_run):
     """Enable access logging for a specific S3 bucket."""
     if dry_run:
-        logging.info(f"[DRY RUN] Would enable access logging for bucket: {bucket_name} with prefix: {target_prefix}")
+        tqdm.write(f"[DRY RUN] Would enable access logging for bucket: {bucket_name} with prefix: {target_prefix}")
         return
 
     try:
         s3_client = boto3.client('s3', region_name=region)
-        logging.info(f"Enabling access logging for bucket: {bucket_name}")
+        tqdm.write(f"Enabling access logging for bucket: {bucket_name}")
         s3_client.put_bucket_logging(
             Bucket=bucket_name,
             BucketLoggingStatus={
@@ -48,9 +48,9 @@ def enable_access_logging(bucket_name, target_bucket, target_prefix, region, dry
                 }
             }
         )
-        logging.info(f"Access logging enabled for bucket: {bucket_name} with prefix: {target_prefix}")
+        tqdm.write(f"Access logging enabled for bucket: {bucket_name} with prefix: {target_prefix}")
     except Exception as e:
-        logging.error(f"Failed to enable access logging for bucket: {bucket_name}. Error: {e}")
+        tqdm.write(f"Failed to enable access logging for bucket: {bucket_name}. Error: {e}")
 
 def scan_buckets_for_missing_logs(region):
     """Scan all buckets in the region for missing access logs configuration."""
@@ -67,13 +67,13 @@ def scan_buckets_for_missing_logs(region):
                 missing_logs_buckets.append(bucket_name)
 
         if missing_logs_buckets:
-            logging.info("Buckets missing access logs configuration:")
+            tqdm.write("Buckets missing access logs configuration:")
             for bucket_name in missing_logs_buckets:
-                print(bucket_name)
+                tqdm.write(bucket_name)
         else:
-            logging.info("All buckets have access logs configuration enabled.")
+            tqdm.write("All buckets have access logs configuration enabled.")
     except Exception as e:
-        logging.error(f"Failed to scan buckets for access logs configuration. Error: {e}")
+        tqdm.write(f"Failed to scan buckets for access logs configuration. Error: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Enable access logs for S3 buckets.")
