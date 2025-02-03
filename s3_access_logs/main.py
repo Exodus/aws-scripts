@@ -12,7 +12,7 @@ import boto3
 import argparse
 import logging
 from tqdm import tqdm
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class Config(BaseModel):
     file: str = Field(..., description="File containing the list of bucket names")
     target_bucket: str = Field(..., description="Target bucket for storing access logs")
-    region: str = Field(..., description="AWS region to use")
+    region: str = Field(default="us-east-1", description="AWS region to use")
     dry_run: bool = False
 
     @field_validator('file')
@@ -58,28 +58,36 @@ def scan_buckets_for_missing_logs(region):
     try:
         response = s3_client.list_buckets()
         buckets = response['Buckets']
-        missing_logs_buckets = []
+        regions = {}
 
         for bucket in tqdm(buckets, desc="Scanning buckets"):
             bucket_name = bucket['Name']
+            bucket_region = get_bucket_region(bucket_name)
             logging_status = s3_client.get_bucket_logging(Bucket=bucket_name)
             if 'LoggingEnabled' not in logging_status:
-                missing_logs_buckets.append(bucket_name)
+                if bucket_region not in regions:
+                    regions[bucket_region] = []
+                regions[bucket_region].append(bucket_name)
 
-        if missing_logs_buckets:
-            tqdm.write("Buckets missing access logs configuration:")
-            for bucket_name in missing_logs_buckets:
-                tqdm.write(bucket_name)
-        else:
-            tqdm.write("All buckets have access logs configuration enabled.")
+        for region, buckets in regions.items():
+            tqdm.write(f"Region: {region}")
+            for bucket_name in buckets:
+                tqdm.write(f"  - {bucket_name}")
+
     except Exception as e:
         tqdm.write(f"Failed to scan buckets for access logs configuration. Error: {e}")
+
+def get_bucket_region(bucket_name):
+    """Get the region of an S3 bucket."""
+    s3_client = boto3.client('s3')
+    bucket_location = s3_client.get_bucket_location(Bucket=bucket_name)
+    return bucket_location['LocationConstraint'] or 'us-east-1'
 
 def main():
     parser = argparse.ArgumentParser(description="Enable access logs for S3 buckets.")
     parser.add_argument('--file', help="File containing the list of bucket names.")
     parser.add_argument('--target-bucket', help="Target bucket for storing access logs.")
-    parser.add_argument('--region', required=True, help="AWS region to use.")
+    parser.add_argument('--region', default="us-east-1", help="Default AWS region to use if not specified.")
     parser.add_argument('--dry-run', action='store_true', help="Perform a dry run without modifying any buckets.")
     parser.add_argument('--scan', action='store_true', help="Scan all buckets in the region for missing access logs configuration.")
     args = parser.parse_args()
