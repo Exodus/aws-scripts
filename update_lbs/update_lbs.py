@@ -11,13 +11,31 @@
 import boto3
 import argparse
 from tqdm import tqdm
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 class Config(BaseModel):
     region: str = Field(..., min_length=1, description="AWS region to scan")
     s3_bucket: str = Field(..., min_length=1, description="S3 bucket to save access logs")
     prefix: str = Field(..., min_length=1, description="Base prefix to save the access logs in the S3 bucket")
     dry_run: bool = False
+
+    @field_validator('region')
+    def region_must_not_be_empty(cls, v):
+        if not v:
+            raise ValueError("Region must not be empty")
+        return v
+
+    @field_validator('s3_bucket')
+    def s3_bucket_must_not_be_empty(cls, v):
+        if not v:
+            raise ValueError("S3 bucket must not be empty")
+        return v
+
+    @field_validator('prefix')
+    def prefix_must_not_be_empty(cls, v):
+        if not v:
+            raise ValueError("Prefix must not be empty")
+        return v
 
 def configure_lb_access_logs(region, s3_bucket, prefix, dry_run=False):
     """
